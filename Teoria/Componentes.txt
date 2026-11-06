@@ -1,0 +1,15 @@
+DIP switch de 4 llaves (azul)
+resistencia de 1Kohm, 2 de 330ohm
+Llave interruptor de 2 puntos
+Teclado matricial 4x4
+Sensor de movimiento PIR501
+Arduino 1
+Cables macho/macho, hembra/hembra y hembra/macho
+Protoboard
+LED verde de 5 mm
+LED rojo de 5 mm
+Buzzer pasivo (piezoeléctrico, 5 V)
+LCD 16x2 con módulo I2C (HD44780 + PCF8574, dirección 0x27)
+2 pulsadores momentáneos (normalmente abiertos)
+Potenciómetro de 10 kohm (opcional, solo si se usa LCD paralelo sin módulo I2C)
+Resistencia de 220 ohm (opcional, solo para luz de fondo del LCD paralelo)
