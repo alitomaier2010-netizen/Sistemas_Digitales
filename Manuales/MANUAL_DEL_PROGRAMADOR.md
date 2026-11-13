@@ -148,6 +148,7 @@ Este manual documenta el diseño, la implementación y las pruebas de una alarma
    6.5. Cambio de clave y de tiempos
    6.6. Variante con LCD paralelo
    6.7. Variante con buzzer activo
+   6.8. Versión simplificada sin LCD (Arduino Uno)
 7. Problemas disparadores
    7.1. Problema 1: LED con dos pulsadores
    7.2. Problema 2: PIR y pulsador B
@@ -241,6 +242,13 @@ La Tabla 1 relaciona cada requisito de la consigna con la parte del manual y del
 *Nota.* El archivo `Componentes.txt` ya incluye el LCD 16×2, los LEDs verde y rojo, el buzzer pasivo, los dos pulsadores, el potenciómetro de 10 kΩ y la resistencia de 220 Ω. El único elemento que se agregó para la alarma es la fuente de alimentación.
 
 *Materiales pendientes.* A la fecha de esta versión todavía no se incorporaron las 11 fotografías, el registro de pruebas de la sección 8.7 ni el archivo de la presentación audiovisual. Los lugares están señalados en el texto para completarlos antes de la entrega final.
+
+**Versiones del firmware.** El repositorio contiene dos sketches:
+
+- `Alarma_PIR_Teclado_Uno/Alarma_PIR_Teclado_Uno.ino`: **versión simplificada para Arduino Uno**, sin LCD. Es la que se usa en el montaje actual y se documenta en la sección 6.8.
+- `Alarma_PIR_Teclado/Alarma_PIR_Teclado.ino`: versión anterior escrita para **ESP8266/NodeMCU**. Se conserva como respaldo histórico; no debe cargarse en el Arduino Uno porque usa alias de pines (`D0`–`D8`) que no existen en esa placa y ocupa D0/D1, que son RX/TX del puerto serie.
+
+La **versión completa** de este manual (sección 6.1) agrega el LCD 16×2 I2C, el silencio temporal del buzzer y el aviso de clave incorrecta. La guía de cableado paso a paso, común a ambas versiones, está en `CONEXIONADO.md`.
 
 ## 2. Descripción general del sistema
 
@@ -558,14 +566,14 @@ La Tabla 6 es la referencia oficial del firmware de la alarma. Cualquier cambio 
 | LED verde | Ánodo | D3 | `OUTPUT` | A través de 330 Ω; cátodo a GND |
 | LED rojo | Ánodo | D4 | `OUTPUT` | A través de 330 Ω; cátodo a GND |
 | Buzzer pasivo | Positivo | D5 | `OUTPUT` | `tone()` a 2 kHz; negativo a GND |
-| Teclado 4×4 | R1 | D6 | Salida de escaneo | Fila 1 |
-| Teclado 4×4 | R2 | D7 | Salida de escaneo | Fila 2 |
-| Teclado 4×4 | R3 | D8 | Salida de escaneo | Fila 3 |
-| Teclado 4×4 | R4 | D9 | Salida de escaneo | Fila 4 |
-| Teclado 4×4 | C1 | A0 | `INPUT_PULLUP` | Columna 1 |
-| Teclado 4×4 | C2 | A1 | `INPUT_PULLUP` | Columna 2 |
-| Teclado 4×4 | C3 | A2 | `INPUT_PULLUP` | Columna 3 |
-| Teclado 4×4 | C4 | A3 | `INPUT_PULLUP` | Columna 4 |
+| Teclado 4×4 | R1 | D6 | `INPUT_PULLUP` | Fila 1 |
+| Teclado 4×4 | R2 | D7 | `INPUT_PULLUP` | Fila 2 |
+| Teclado 4×4 | R3 | D8 | `INPUT_PULLUP` | Fila 3 |
+| Teclado 4×4 | R4 | D9 | `INPUT_PULLUP` | Fila 4 |
+| Teclado 4×4 | C1 | A0 | Salida de escaneo | Columna 1 |
+| Teclado 4×4 | C2 | A1 | Salida de escaneo | Columna 2 |
+| Teclado 4×4 | C3 | A2 | Salida de escaneo | Columna 3 |
+| Teclado 4×4 | C4 | A3 | Salida de escaneo | Columna 4 |
 | LCD 16×2 I2C | VCC | 5V | Alimentación | 5 V |
 | LCD 16×2 I2C | GND | GND | Alimentación | GND común |
 | LCD 16×2 I2C | SDA | A4 | I2C | Datos |
@@ -583,6 +591,8 @@ La Tabla 6 es la referencia oficial del firmware de la alarma. Cualquier cambio 
 *Nota.* Los pines D10 a D13 quedan libres en la alarma. Los sketches de los problemas 1, 2 y 4 usan otros pines porque se cargan por separado; no se debe montar la alarma y el problema 4 al mismo tiempo con el mismo Arduino.
 
 ### 4.3. Conexionado paso a paso
+
+La guía ampliada, con el diagrama de conexiones, la verificación del orden del teclado y la lista de comprobación previa, está en `CONEXIONADO.md`.
 
 1. **Desconectar la alimentación** del Arduino y de la fuente externa antes de empezar.
 2. **Armar los rieles**: llevar 5 V y GND desde el Arduino al protoboard. Unir los rieles de ambos lados si el modelo no lo hace internamente.
@@ -985,7 +995,7 @@ El puerto serie se configura a 9600 baudios, 8 bits, sin paridad y 1 bit de para
 
 ### 6.1. Sketch completo
 
-El siguiente sketch se copia en un archivo `Alarma_PIR_Teclado.ino` del Arduino IDE. Está comentado por bloques para facilitar su estudio y su modificación.
+El siguiente sketch corresponde a la **versión completa** (con LCD). Se copia en un archivo `Alarma_PIR_Teclado.ino` del Arduino IDE. Está comentado por bloques para facilitar su estudio y su modificación. La versión simplificada sin LCD, que es la que se usa en el montaje actual, se presenta en la sección 6.8.
 
 ```cpp
 /*
@@ -1622,6 +1632,378 @@ void stopAlarmSound() {
 
 En `updateBuzzer()` se cambia `tone(BUZZER_PIN, BUZZER_FREQ)` por `digitalWrite(BUZZER_PIN, HIGH)` y `noTone(BUZZER_PIN)` por `digitalWrite(BUZZER_PIN, LOW)`. Para los beeps de error se hace lo mismo con el pin. El patrón de tiempos no cambia. Si el buzzer activo consume más de 20 mA (el valor recomendado por pin), usar un transistor y una resistencia de 1 kΩ en la base.
 
+### 6.8. Versión simplificada sin LCD (Arduino Uno)
+
+El repositorio incluye una versión reducida del firmware en `Alarma_PIR_Teclado_Uno/Alarma_PIR_Teclado_Uno.ino`, pensada para el montaje que no tiene LCD. Mantiene el comportamiento exigido por la consigna y los mismos pines de la Tabla 6, pero elimina la pantalla, el silencio temporal al tipear y los beeps de error. La alarma sigue enclavada y solo se desactiva con la clave `0000`.
+
+**Diferencias con la versión completa.**
+
+- **Placa y pines:** misma placa (Arduino Uno R3) y mismos pines (D2–D5, D6–D9 y A0–A3); A4 y A5 quedan libres.
+- **Librerías:** solo `Keypad`; no se usan `Wire` ni `LiquidCrystal_I2C`.
+- **Pantalla:** no hay LCD; el estado se sigue por los LEDs, el buzzer y el monitor serie.
+- **Silencio al tipear:** no está implementado; el buzzer sigue sonando mientras se ingresa la clave.
+- **Clave incorrecta:** se borra el buffer y la alarma continúa sonando, sin beeps de error.
+- **Estados:** se llaman `WARMUP`, `ARMED`, `ALARM` y `REARM`, con la misma lógica que `WARMUP`, `ARMED`, `TRIGGERED` y `REARMING`.
+
+**Código completo.**
+
+```cpp
+/*
+  ============================================================
+  Alarma con sensor de movimiento PIR y clave de desactivacion
+  ============================================================
+  Placa: Arduino Uno R3
+  Buzzer: pasivo (se maneja con tone())
+  Clave de fabrica: 0000
+
+  Funcionamiento:
+    - Reposo (sin deteccion) .... LED VERDE encendido.
+    - Detecta movimiento ........ LED VERDE apagado, LED ROJO
+                                  encendido y buzzer intermitente.
+    - La alarma queda enclavada hasta que se ingresa la clave
+      correcta (0000) por el teclado 4x4.
+    - Al desactivar, espera 10 s y que el PIR vuelva a reposo
+      antes de volver a armarse.
+    - Al encender, el PIR calienta 60 s (LED verde parpadeando).
+
+  Conexionado:
+    PIR HC-SR501  OUT ....... D2
+    LED verde     anodo ..... D3  (+ resistencia 330 ohm a GND)
+    LED rojo      anodo ..... D4  (+ resistencia 330 ohm a GND)
+    Buzzer pasivo positivo .. D5  (negativo a GND)
+    Teclado 4x4   filas ..... D6, D7, D8, D9
+    Teclado 4x4   columnas .. A0, A1, A2, A3
+    Llave de 2 puntos ....... en serie con la alimentacion externa
+                              (no ocupa pin del Arduino)
+
+  Libreria necesaria: Keypad (Gestor de librerias del IDE)
+  ============================================================
+*/
+
+#include <Keypad.h>
+
+// -------------------- Pines de entrada / salida --------------------
+const uint8_t PIR_PIN    = 2;
+const uint8_t LED_GREEN  = 3;
+const uint8_t LED_RED    = 4;
+const uint8_t BUZZER_PIN = 5;
+
+// -------------------- Teclado 4x4 --------------------
+const byte ROWS = 4;
+const byte COLS = 4;
+
+char keys[ROWS][COLS] = {
+  {'1', '2', '3', 'A'},
+  {'4', '5', '6', 'B'},
+  {'7', '8', '9', 'C'},
+  {'*', '0', '#', 'D'}
+};
+
+byte rowPins[ROWS] = {6, 7, 8, 9};       // R1 a R4
+byte colPins[COLS] = {A0, A1, A2, A3};   // C1 a C4
+
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+
+// -------------------- Clave --------------------
+const char PASSWORD[] = "0000";
+const uint8_t PASSWORD_LEN = 4;
+
+// -------------------- Tiempos --------------------
+const unsigned long WARMUP_MS      = 60000UL;  // calentamiento del PIR
+const unsigned long REARM_MS       = 10000UL;  // espera antes de rearmar
+const unsigned long PIR_SAMPLE_MS  = 50UL;     // muestreo del PIR
+const uint8_t PIR_STABLE_SAMPLES   = 3;        // 3 x 50 ms = 150 ms
+const unsigned int BUZZER_FREQ     = 2000;     // Hz
+const unsigned long BUZZER_ON_MS   = 250UL;    // pitido encendido
+const unsigned long BUZZER_OFF_MS  = 350UL;    // pausa entre pitidos
+
+// -------------------- Estados --------------------
+enum State { WARMUP, ARMED, ALARM, REARM };
+State state = WARMUP;
+unsigned long stateSince = 0;
+
+// -------------------- Variables --------------------
+char input[PASSWORD_LEN + 1];
+uint8_t inputLen = 0;
+
+bool pirActive     = false;
+bool lastPirRaw    = LOW;
+bool stablePir     = LOW;
+uint8_t pirCount   = 0;
+unsigned long lastPirSample = 0;
+
+bool buzzerOn      = false;
+unsigned long buzzerPhase = 0;
+
+// -------------------- Prototipos --------------------
+void enterState(State newState);
+void updatePIR();
+void handleKey(char key);
+void checkPassword();
+void updateStateMachine();
+void updateLeds();
+void updateBuzzer();
+void stopBuzzer();
+void clearInput();
+
+// ============================================================
+// setup
+// ============================================================
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(PIR_PIN, INPUT);
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+
+  digitalWrite(LED_GREEN, LOW);
+  digitalWrite(LED_RED, LOW);
+  digitalWrite(BUZZER_PIN, LOW);
+
+  keypad.setDebounceTime(20);
+
+  Serial.println(F("=== Alarma PIR + teclado (Arduino Uno) ==="));
+  Serial.println(F("Clave de fabrica: 0000"));
+
+  enterState(WARMUP);
+}
+
+// ============================================================
+// loop principal (no usa delay)
+// ============================================================
+void loop() {
+  updatePIR();
+
+  char key = keypad.getKey();
+  if (key) handleKey(key);
+
+  updateStateMachine();
+  updateLeds();
+  updateBuzzer();
+}
+
+// ============================================================
+// Cambio de estado
+// ============================================================
+void enterState(State newState) {
+  state = newState;
+  stateSince = millis();
+  clearInput();
+
+  switch (newState) {
+    case WARMUP:
+      stopBuzzer();
+      Serial.println(F("Estado: CALENTAMIENTO (60 s)"));
+      break;
+
+    case ARMED:
+      stopBuzzer();
+      Serial.println(F("Estado: ARMADO (vigilando)"));
+      break;
+
+    case ALARM:
+      Serial.println(F("Estado: ALARMA (movimiento detectado)"));
+      break;
+
+    case REARM:
+      stopBuzzer();
+      Serial.println(F("Estado: REARMANDO (10 s)"));
+      break;
+  }
+}
+
+// ============================================================
+// Lectura del PIR con antirrebote (150 ms)
+// ============================================================
+void updatePIR() {
+  unsigned long now = millis();
+  if (now - lastPirSample < PIR_SAMPLE_MS) return;
+  lastPirSample = now;
+
+  bool raw = digitalRead(PIR_PIN);
+
+  // Si cambio la lectura, reinicia el contador
+  if (raw != lastPirRaw) {
+    lastPirRaw = raw;
+    pirCount = 0;
+    return;
+  }
+
+  if (pirCount < PIR_STABLE_SAMPLES) {
+    pirCount++;
+    if (pirCount >= PIR_STABLE_SAMPLES) {
+      stablePir = raw;
+      if (stablePir != pirActive) {
+        pirActive = stablePir;
+        Serial.println(pirActive ? F("PIR: movimiento") : F("PIR: reposo"));
+      }
+    }
+  }
+}
+
+// ============================================================
+// Teclado y clave (solo se usa en estado ALARM)
+// ============================================================
+void handleKey(char key) {
+  if (state != ALARM) return;
+
+  bool isDigit   = (key >= '0' && key <= '9');
+  bool isControl = (key == '*' || key == '#');
+  if (!isDigit && !isControl) return;
+
+  Serial.print(F("Tecla: "));
+  Serial.println(key);
+
+  if (key == '*') {          // borrar lo ingresado
+    clearInput();
+    return;
+  }
+
+  if (key == '#') {          // confirmar manualmente
+    if (inputLen == PASSWORD_LEN) checkPassword();
+    return;
+  }
+
+  if (inputLen < PASSWORD_LEN) {
+    input[inputLen++] = key;
+    input[inputLen] = '\0';
+
+    // Al cuarto digito se valida solo
+    if (inputLen == PASSWORD_LEN) checkPassword();
+  }
+}
+
+void checkPassword() {
+  if (strcmp(input, PASSWORD) == 0) {
+    Serial.println(F("Clave correcta: alarma desactivada"));
+    enterState(REARM);
+  } else {
+    Serial.println(F("Clave incorrecta: reintente"));
+    clearInput();   // sigue sonando la alarma
+  }
+}
+
+// ============================================================
+// Maquina de estados
+// ============================================================
+void updateStateMachine() {
+  unsigned long elapsed = millis() - stateSince;
+
+  switch (state) {
+    case WARMUP:
+      if (elapsed >= WARMUP_MS) {
+        Serial.println(F("PIR estabilizado"));
+        enterState(ARMED);
+      }
+      break;
+
+    case ARMED:
+      if (pirActive) enterState(ALARM);
+      break;
+
+    case ALARM:
+      // Queda enclavada: solo sale con la clave correcta
+      break;
+
+    case REARM:
+      if (elapsed >= REARM_MS && !pirActive) enterState(ARMED);
+      break;
+  }
+}
+
+// ============================================================
+// Salidas: LEDs
+// ============================================================
+void updateLeds() {
+  bool green = false;
+  bool red   = false;
+
+  switch (state) {
+    case WARMUP:
+      green = ((millis() - stateSince) / 500UL) % 2UL == 0UL; // parpadea
+      break;
+
+    case ARMED:
+      green = true;   // reposo: verde fijo
+      break;
+
+    case ALARM:
+      red = true;     // alarma: rojo fijo, verde apagado
+      break;
+
+    case REARM:
+      green = true;
+      break;
+  }
+
+  digitalWrite(LED_GREEN, green ? HIGH : LOW);
+  digitalWrite(LED_RED, red ? HIGH : LOW);
+}
+
+// ============================================================
+// Salidas: buzzer pasivo intermitente
+// ============================================================
+void updateBuzzer() {
+  if (state != ALARM) {
+    stopBuzzer();
+    return;
+  }
+
+  unsigned long now = millis();
+
+  if (buzzerOn) {
+    if (now - buzzerPhase >= BUZZER_ON_MS) {
+      stopBuzzer();
+      buzzerPhase = now;
+    }
+  } else {
+    if (now - buzzerPhase >= BUZZER_OFF_MS) {
+      tone(BUZZER_PIN, BUZZER_FREQ);
+      buzzerOn = true;
+      buzzerPhase = now;
+    }
+  }
+}
+
+void stopBuzzer() {
+  if (buzzerOn) {
+    noTone(BUZZER_PIN);
+    digitalWrite(BUZZER_PIN, LOW);
+    buzzerOn = false;
+  }
+}
+
+void clearInput() {
+  inputLen = 0;
+  input[0] = '\0';
+}
+```
+
+**Compilación.** Solo requiere la librería `Keypad`. Se abre la carpeta `Alarma_PIR_Teclado_Uno` en el IDE, se selecciona la placa Arduino Uno y se sube el sketch. El monitor serie a 9600 baudios muestra el estado y las teclas.
+
+**Salida esperada.**
+
+```text
+=== Alarma PIR + teclado (Arduino Uno) ===
+Clave de fabrica: 0000
+Estado: CALENTAMIENTO (60 s)
+PIR estabilizado
+Estado: ARMADO (vigilando)
+PIR: movimiento
+Estado: ALARMA (movimiento detectado)
+Tecla: 0
+Tecla: 0
+Tecla: 0
+Tecla: 0
+Clave correcta: alarma desactivada
+Estado: REARMANDO (10 s)
+PIR: reposo
+Estado: ARMADO (vigilando)
+```
+
+**Pruebas específicas.** Repetir T-03 a T-09 y T-12 de la Tabla 23, teniendo en cuenta que no hay LCD: el estado se verifica por los LEDs, el buzzer y el monitor serie. La clave incorrecta no produce beeps de error, pero la alarma sigue sonando y se puede reintentar.
+
 <div style="page-break-before: always;"></div>
 
 ## 7. Problemas disparadores
@@ -2003,6 +2385,8 @@ Se usan el monitor serie, el multímetro, un cronómetro y una persona que se mu
 | T-18 | Problema 3 | Cargar el sketch P3 | Cada tecla muestra su carácter y ASCII |
 | T-19 | Problema 4 | Cargar el sketch P4 | LED y monitor serie coinciden con la Tabla 21 |
 
+*Nota.* Las pruebas T-03, T-09, T-10, T-11 y T-13 describen mensajes del LCD de la versión completa. En la versión simplificada (sección 6.8) esos resultados se verifican con los LEDs, el buzzer y el monitor serie.
+
 ### 8.3. Pruebas unitarias
 
 - **PIR**: alimentar el módulo, esperar 60 s y verificar con el monitor serie que `PIR: MOVIMIENTO` aparece al mover la mano y `PIR: REPOSO` al alejarse. Medir la salida con el multímetro: debe pasar de 0 V a 3,3 V.
@@ -2036,6 +2420,8 @@ El proyecto se considera aceptado si:
 - El sistema se rearma sin disparos falsos inmediatos.
 - La llave de dos puntos apaga y enciende el conjunto cuando se alimenta con la fuente externa; no corta el USB.
 - Los cuatro problemas disparadores funcionan según su consigna.
+
+*Nota.* En la versión simplificada sin LCD (sección 6.8) no hay mensajes de pantalla: los criterios se verifican con los LEDs, el buzzer y el monitor serie.
 
 ### 8.6. Solución de problemas
 
@@ -2083,6 +2469,8 @@ El proyecto se considera aceptado si:
 ## 9. Operación y mantenimiento
 
 ### 9.1. Modo de uso
+
+**Versión simplificada.** Si se usa el sketch sin LCD (sección 6.8), los mensajes de pantalla de esta sección se reemplazan por los LEDs y el monitor serie: el LED verde parpadea durante el calentamiento y queda fijo en reposo, el LED rojo se enciende en la alarma y el buzzer suena de forma intermitente. El resto de la operación es igual.
 
 1. Verificar que la llave de dos puntos esté en apagado.
 2. Conectar la fuente de alimentación o el cable USB.
@@ -2301,7 +2689,8 @@ El valor comercial más cercano es 82 Ω o 100 Ω. Si solo se dispone de 220 Ω 
 
 | Sketch | Entradas | Salidas | Observaciones |
 |---|---|---|---|
-| Alarma final | PIR D2; teclado D6–D9 y A0–A3 | LEDs D3 y D4; buzzer D5; LCD A4/A5 | D10–D13 libres |
+| Alarma completa | PIR D2; teclado D6–D9 y A0–A3 | LEDs D3 y D4; buzzer D5; LCD A4/A5 | D10–D13 libres |
+| Alarma simplificada | PIR D2; teclado D6–D9 y A0–A3 | LEDs D3 y D4; buzzer D5 | Sin LCD; A4/A5 libres |
 | Problema 1 | Pulsador A D2; pulsador B D3 | LED D8 | Pines de práctica |
 | Problema 2 | PIR D2; pulsador B D3 | LED D8 | PIR con calentamiento |
 | Problema 3 | Teclado D6–D9 y A0–A3 | Monitor serie USB | Sin LEDs |
@@ -2340,7 +2729,7 @@ Duración sugerida: 8 a 10 minutos, con 3 a 5 minutos de preguntas. Participan l
 - [ ] Arduino cargado con el sketch final y probado al menos una vez.
 - [ ] Clave `0000` verificada.
 - [ ] PIR calentado durante 60 segundos antes de la expo.
-- [ ] LCD con contraste legible desde 2 metros.
+- [ ] LCD con contraste legible desde 2 metros (solo versión completa).
 - [ ] LEDs verde y rojo visibles.
 - [ ] Buzzer audible sin saturar el ambiente.
 - [ ] Teclado con todas las teclas probadas.
@@ -2535,6 +2924,7 @@ En la exportación a PDF, verificar que las URLs se vean completas y que las cur
 | Versión | Fecha | Autores | Cambios |
 |---|---|---|---|
 | 1.0 | 9 de noviembre de 2026 | Alexis Maier, Aramis Demaria, Santino Laudati e Ian Quiroga | Versión inicial del Manual del Programador |
+| 1.1 | 13 de noviembre de 2026 | Alexis Maier, Aramis Demaria, Santino Laudati e Ian Quiroga | Se agrega la versión simplificada sin LCD para Arduino Uno (sección 6.8), se corrige el modo de los pines del teclado en la Tabla 6, se documentan las dos versiones del firmware y se agrega la guía `CONEXIONADO.md` |
 
 ---
 

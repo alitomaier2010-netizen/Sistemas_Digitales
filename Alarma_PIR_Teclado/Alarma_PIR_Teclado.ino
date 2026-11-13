@@ -1,3 +1,16 @@
+/*
+  ============================================================
+  VERSION ANTERIOR - ESP8266 / NodeMCU
+  ============================================================
+  Este sketch usa los alias de pines del ESP8266 (D0, D1, D2...)
+  y el teclado conectado a RX/TX. NO compilar en un Arduino Uno.
+
+  Para el Arduino Uno usar:
+    Alarma_PIR_Teclado_Uno/Alarma_PIR_Teclado_Uno.ino
+  Ver tambien CONEXIONADO.md.
+  ============================================================
+*/
+
 #include <Keypad.h>
 
 // -------------------- Pines ESP8266 --------------------
