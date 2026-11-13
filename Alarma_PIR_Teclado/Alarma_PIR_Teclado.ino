@@ -1,31 +1,11 @@
-/*
-  ============================================================
-  Alarma con sensor de movimiento y clave de desactivación
-  Proyecto Integrador - Sistemas Digitales I
-  Arduino Uno R3 + PIR HC-SR501 + teclado 4x4 + LCD 16x2 I2C
-  ============================================================
-
-  Comportamiento:
-  - WARMUP: calentamiento del PIR (60 s), LED verde parpadeando.
-  - ARMED: reposo, LED verde encendido.
-  - TRIGGERED: movimiento, LED rojo y buzzer intermitente.
-  - REARMING: clave correcta, LED verde y espera de 10 s.
-
-  Clave de fábrica: 0000
-  ============================================================
-*/
-
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
 #include <Keypad.h>
-#include <string.h>
-#include <stdio.h>
 
-// -------------------- Pines --------------------
-const uint8_t PIR_PIN = 2;
-const uint8_t LED_GREEN = 3;
-const uint8_t LED_RED = 4;
-const uint8_t BUZZER_PIN = 5;
+// -------------------- Pines ESP8266 --------------------
+const uint8_t BUZZER_PIN = D0;
+const uint8_t PIR_PIN = D5;
+const uint8_t LED_RED = D6;
+const uint8_t LED_GREEN = D7;
+const uint8_t SWITCH_PIN = D8; // Llave interruptora de palanca
 
 // -------------------- Teclado 4x4 --------------------
 const byte ROWS = 4;
@@ -36,21 +16,20 @@ char keys[ROWS][COLS] = {
   {'7', '8', '9', 'C'},
   {'*', '0', '#', 'D'}
 };
-byte rowPins[ROWS] = {6, 7, 8, 9};
-byte colPins[COLS] = {A0, A1, A2, A3};
+
+// Pines exactos que conectaste en la protoboard
+byte rowPins[ROWS] = {3, 1, D3, D4}; // RX, TX, D3, D4
+byte colPins[COLS] = {D1, D2, 9, 10}; // D1, D2, S2, S3
+
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
-// -------------------- LCD 16x2 I2C --------------------
-// Si el módulo usa 0x3F, cambiar la dirección.
-LiquidCrystal_I2C lcd(0x27, 16, 2);
-
 // -------------------- Clave --------------------
-const char PASSWORD[] = "0000";
+const char PASSWORD[] = "0000"; // Tu clave de fábrica
 const uint8_t PASSWORD_LEN = 4;
 
 // -------------------- Tiempos --------------------
-const unsigned long WARMUP_MS = 60000UL;
-const unsigned long REARM_MS = 10000UL;
+const unsigned long WARMUP_MS = 60000UL; // 60 segundos de calentamiento del PIR
+const unsigned long REARM_MS = 10000UL;  // 10 segundos de rearme
 const unsigned long PIR_SAMPLE_MS = 50UL;
 const uint8_t PIR_STABLE_SAMPLES = 3;
 const unsigned long BUZZER_ON_MS = 250UL;
@@ -58,11 +37,10 @@ const unsigned long BUZZER_OFF_MS = 350UL;
 const unsigned int BUZZER_FREQ = 2000;
 const unsigned long ERROR_MS = 1500UL;
 const unsigned long MUTE_TIMEOUT_MS = 15000UL;
-const unsigned long LCD_REFRESH_MS = 250UL;
 
 // -------------------- Estados --------------------
-enum State { WARMUP, ARMED, TRIGGERED, REARMING };
-State state = WARMUP;
+enum State { OFF, WARMUP, ARMED, TRIGGERED, REARMING };
+State state = OFF;
 unsigned long stateSince = 0;
 
 // -------------------- Variables --------------------
@@ -85,10 +63,6 @@ bool errorActive = false;
 unsigned long errorSince = 0;
 bool errorBuzzerOn = false;
 
-bool lcdDirty = true;
-unsigned long lastLcdRefresh = 0;
-int lastCountdown = -1;
-
 // -------------------- Prototipos --------------------
 void enterState(State newState);
 void updatePIR();
@@ -99,45 +73,52 @@ void updateError();
 void updateStateMachine();
 void updateLeds();
 void updateBuzzer();
-void updateLCD();
 void startAlarmSound();
 void stopAlarmSound();
 void clearInput();
-void buildMask(char *out);
-void lcdPrintLine(uint8_t row, const char *text);
 
 // ============================================================
 // setup
 // ============================================================
 void setup() {
   Serial.begin(9600);
-
+  
   pinMode(PIR_PIN, INPUT);
   pinMode(LED_GREEN, OUTPUT);
   pinMode(LED_RED, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(SWITCH_PIN, INPUT_PULLUP);
 
   digitalWrite(LED_GREEN, LOW);
   digitalWrite(LED_RED, LOW);
-  noTone(BUZZER_PIN);
-
-  lcd.init();
-  lcd.backlight();
-  lcd.clear();
+  digitalWrite(BUZZER_PIN, LOW); 
 
   keypad.setDebounceTime(20);
 
-  Serial.println(F("=== Alarma PIR + teclado ==="));
+  Serial.println(F("=== Alarma PIR + Teclado (ESP8266) ==="));
   Serial.println(F("Clave de fabrica: 0000"));
-  Serial.println(F("Calentando el PIR 60 s..."));
-
-  enterState(WARMUP);
+  
+  enterState(OFF); // El sistema arranca leyendo si la llave está prendida
 }
 
 // ============================================================
 // loop principal
 // ============================================================
 void loop() {
+  // Lectura de la llave general (Interruptor de palanca)
+  bool sistemaEncendido = (digitalRead(SWITCH_PIN) == LOW);
+  
+  if (!sistemaEncendido) {
+    if (state != OFF) {
+      enterState(OFF); // Apagar todo si se baja la palanca
+    }
+    return; // No procesar nada más si está apagado
+  } else {
+    if (state == OFF) {
+      enterState(WARMUP); // Iniciar ciclo si se sube la palanca
+    }
+  }
+
   updatePIR();
 
   char key = keypad.getKey();
@@ -147,7 +128,6 @@ void loop() {
   updateError();
   updateLeds();
   updateBuzzer();
-  updateLCD();
 }
 
 // ============================================================
@@ -156,37 +136,44 @@ void loop() {
 void enterState(State newState) {
   state = newState;
   stateSince = millis();
-  lastCountdown = -1;
-  lcdDirty = true;
   clearInput();
 
   switch (newState) {
+    case OFF:
+      stopAlarmSound();
+      buzzerMuted = false;
+      errorActive = false;
+      digitalWrite(LED_GREEN, LOW);
+      digitalWrite(LED_RED, LOW);
+      Serial.println(F("Estado: SISTEMA APAGADO (Llave abajo)"));
+      break;
+
     case WARMUP:
       stopAlarmSound();
       buzzerMuted = false;
       errorActive = false;
-      Serial.println(F("Estado: CALENTAMIENTO"));
+      Serial.println(F("Estado: CALENTAMIENTO (60 segundos)"));
       break;
 
     case ARMED:
       stopAlarmSound();
       buzzerMuted = false;
       errorActive = false;
-      Serial.println(F("Estado: ARMADO"));
+      Serial.println(F("Estado: ARMADO (Vigilando)"));
       break;
 
     case TRIGGERED:
       buzzerMuted = false;
       errorActive = false;
       startAlarmSound();
-      Serial.println(F("Estado: ALARMA"));
+      Serial.println(F("Estado: ALARMA SONANDO"));
       break;
 
     case REARMING:
       stopAlarmSound();
       buzzerMuted = false;
       errorActive = false;
-      Serial.println(F("Estado: REARMANDO"));
+      Serial.println(F("Estado: REARMANDO (10 segundos)"));
       break;
   }
 }
@@ -229,10 +216,11 @@ void handleKey(char key) {
 
   unsigned long now = millis();
 
+  // Si tocas el teclado mientras suena la alarma, se silencia 15s
   if (!buzzerMuted) {
     buzzerMuted = true;
     stopAlarmSound();
-    Serial.println(F("Buzzer silenciado (15 s)"));
+    Serial.println(F("Buzzer silenciado (15 s) por escribir en teclado"));
   }
   muteStart = now;
 
@@ -240,10 +228,11 @@ void handleKey(char key) {
   Serial.println(key);
 
   if (key == '*') {
-    clearInput();
+    clearInput(); // Borrar si te equivocaste
     return;
   }
 
+  // Confirmar si toca # o si ya completó los 4 números
   if (key == '#') {
     if (inputLen == PASSWORD_LEN) checkPassword();
     return;
@@ -252,8 +241,7 @@ void handleKey(char key) {
   if (inputLen < PASSWORD_LEN) {
     input[inputLen++] = key;
     input[inputLen] = '\0';
-    lcdDirty = true;
-    if (inputLen == PASSWORD_LEN) checkPassword();
+    if (inputLen == PASSWORD_LEN) checkPassword(); // Chequeo automático al cuarto número
   }
 }
 
@@ -276,8 +264,7 @@ void triggerError() {
   errorBuzzerOn = false;
   buzzerMuted = true;
   muteStart = millis();
-  lcdDirty = true;
-  Serial.println(F("Error de clave: 3 beeps"));
+  Serial.println(F("Error de clave: 3 beeps rápidos"));
 }
 
 void updateError() {
@@ -286,18 +273,20 @@ void updateError() {
 
   errorActive = false;
   noTone(BUZZER_PIN);
+  digitalWrite(BUZZER_PIN, LOW);
   errorBuzzerOn = false;
   buzzerMuted = false;
-  lcdDirty = true;
   Serial.println(F("Fin del aviso de error"));
 
-  if (state == TRIGGERED) startAlarmSound();
+  if (state == TRIGGERED) startAlarmSound(); // Vuelve a sonar la alarma principal
 }
 
 // ============================================================
 // Máquina de estados
 // ============================================================
 void updateStateMachine() {
+  if (state == OFF) return;
+
   unsigned long elapsed = millis() - stateSince;
 
   switch (state) {
@@ -322,30 +311,32 @@ void updateStateMachine() {
 }
 
 // ============================================================
-// Salidas: LEDs, buzzer y LCD
+// Salidas: LEDs y buzzer
 // ============================================================
 void updateLeds() {
+  if (state == OFF) return; 
+
   bool green = false;
   bool red = false;
 
   switch (state) {
     case WARMUP:
-      green = ((millis() - stateSince) / 500UL) % 2UL == 0UL;
+      green = ((millis() - stateSince) / 500UL) % 2UL == 0UL; // Parpadeo verde
       break;
     case ARMED:
-      green = true;
+      green = true; // Verde fijo
       break;
     case TRIGGERED:
-      red = true;
+      red = true; // Rojo fijo
       break;
     case REARMING:
-      green = true;
+      green = true; // Verde fijo
       break;
   }
 
   if (errorActive) {
     green = false;
-    red = ((millis() - errorSince) % 300UL) < 150UL;
+    red = ((millis() - errorSince) % 300UL) < 150UL; // Parpadeo rojo rápido si hay error
   }
 
   digitalWrite(LED_GREEN, green ? HIGH : LOW);
@@ -363,13 +354,17 @@ void stopAlarmSound() {
   alarmSoundEnabled = false;
   if (buzzerOn) {
     noTone(BUZZER_PIN);
+    digitalWrite(BUZZER_PIN, LOW); // Seguro para apagar en ESP8266
     buzzerOn = false;
   }
 }
 
 void updateBuzzer() {
+  if (state == OFF) return;
+
   unsigned long now = millis();
 
+  // Beeps de error
   if (errorActive) {
     bool on = ((now - errorSince) % 500UL) < 150UL;
     if (on && !errorBuzzerOn) {
@@ -377,11 +372,13 @@ void updateBuzzer() {
       errorBuzzerOn = true;
     } else if (!on && errorBuzzerOn) {
       noTone(BUZZER_PIN);
+      digitalWrite(BUZZER_PIN, LOW);
       errorBuzzerOn = false;
     }
     return;
   }
 
+  // Reanudar alarma si se acaba el tiempo de silencio (15s)
   if (state == TRIGGERED && buzzerMuted && !alarmSoundEnabled &&
       (now - muteStart >= MUTE_TIMEOUT_MS)) {
     buzzerMuted = false;
@@ -390,9 +387,11 @@ void updateBuzzer() {
 
   if (!alarmSoundEnabled) return;
 
+  // Intermitencia de la alarma principal
   if (buzzerOn) {
     if (now - buzzerPhase >= BUZZER_ON_MS) {
       noTone(BUZZER_PIN);
+      digitalWrite(BUZZER_PIN, LOW);
       buzzerOn = false;
       buzzerPhase = now;
     }
@@ -408,78 +407,4 @@ void updateBuzzer() {
 void clearInput() {
   inputLen = 0;
   input[0] = '\0';
-  lcdDirty = true;
-}
-
-void buildMask(char *out) {
-  for (uint8_t i = 0; i < PASSWORD_LEN; i++) {
-    out[i] = (i < inputLen) ? '*' : '_';
-  }
-  out[PASSWORD_LEN] = '\0';
-}
-
-void lcdPrintLine(uint8_t row, const char *text) {
-  char buf[17];
-  snprintf(buf, sizeof(buf), "%-16s", text);
-  lcd.setCursor(0, row);
-  lcd.print(buf);
-}
-
-void updateLCD() {
-  unsigned long now = millis();
-
-  if (!lcdDirty && (now - lastLcdRefresh < LCD_REFRESH_MS)) return;
-  lastLcdRefresh = now;
-
-  char line1[17];
-  char line2[17];
-
-  switch (state) {
-    case WARMUP: {
-      int remaining = (int)((WARMUP_MS - (now - stateSince) + 999UL) / 1000UL);
-      if (remaining < 0) remaining = 0;
-      if (!lcdDirty && remaining == lastCountdown) return;
-      lastCountdown = remaining;
-      strcpy(line1, "Calentando PIR");
-      snprintf(line2, sizeof(line2), "Espere: %d s", remaining);
-      break;
-    }
-
-    case ARMED:
-      if (!lcdDirty) return;
-      strcpy(line1, "Sistema armado");
-      strcpy(line2, "Sin movimiento");
-      break;
-
-    case TRIGGERED:
-      if (!lcdDirty) return;
-      if (errorActive) {
-        strcpy(line1, "Clave incorrecta");
-        strcpy(line2, "Intente de nuevo");
-      } else {
-        char mask[PASSWORD_LEN + 1];
-        buildMask(mask);
-        strcpy(line1, "Movimiento!");
-        snprintf(line2, sizeof(line2), "Clave: %s", mask);
-      }
-      break;
-
-    case REARMING: {
-      int remaining = (int)((REARM_MS - (now - stateSince) + 999UL) / 1000UL);
-      if (remaining < 0) remaining = 0;
-      if (!lcdDirty && remaining == lastCountdown) return;
-      lastCountdown = remaining;
-      strcpy(line1, "Alarma OFF");
-      if (remaining > 0) {
-        snprintf(line2, sizeof(line2), "Rearmando %d s", remaining);
-      } else {
-        strcpy(line2, "Espere PIR...");
-      }
-      break;
-    }
-  }
-
-  lcdPrintLine(0, line1);
-  lcdPrintLine(1, line2);
-  lcdDirty = false;
 }

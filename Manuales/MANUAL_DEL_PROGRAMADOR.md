@@ -15,7 +15,7 @@
     color: #666;
   }
   @bottom-center {
-    content: "6 de noviembre de 2026";
+    content: "9 de noviembre de 2026";
     font-family: "Times New Roman", serif;
     font-size: 8pt;
     color: #666;
@@ -75,7 +75,7 @@ Ian Quiroga
 <strong>Curso:</strong> 5°3<br>
 <strong>Materia:</strong> Sistemas Digitales I<br>
 <strong>Profesor:</strong> Lic. Prof. Nicolás Salimbeni<br>
-<strong>Fecha:</strong> 6 de noviembre de 2026
+<strong>Fecha:</strong> 9 de noviembre de 2026
 
 <br><br><br>
 
@@ -238,19 +238,21 @@ La Tabla 1 relaciona cada requisito de la consigna con la parte del manual y del
 | Presentación audiovisual para la expo técnica | Guion, checklist y preguntas frecuentes | Anexo D |
 | Problemas disparadores 1 a 4 | Cuatro sketches independientes con circuito y pruebas | Sección 7 |
 
-*Nota.* La lista de componentes del archivo `Componentes.txt` se amplió con los elementos que la consigna exige y que no figuraban: LED verde, LED rojo, buzzer pasivo, LCD 16×2 y dos pulsadores para los problemas 1 y 2.
+*Nota.* El archivo `Componentes.txt` ya incluye el LCD 16×2, los LEDs verde y rojo, el buzzer pasivo, los dos pulsadores, el potenciómetro de 10 kΩ y la resistencia de 220 Ω. El único elemento que se agregó para la alarma es la fuente de alimentación.
+
+*Materiales pendientes.* A la fecha de esta versión todavía no se incorporaron las 11 fotografías, el registro de pruebas de la sección 8.7 ni el archivo de la presentación audiovisual. Los lugares están señalados en el texto para completarlos antes de la entrega final.
 
 ## 2. Descripción general del sistema
 
 ### 2.1. Objetivo funcional
 
-El sistema debe detectar la presencia de una persona mediante el sensor PIR y responder con una alarma visual y sonora. Mientras no haya detección, debe mostrar un estado de reposo con el LED verde encendido. Cuando detecte movimiento, debe encender el LED rojo y hacer sonar el buzzer de forma intermitente. La alarma debe quedar **enclavada**: aunque la persona deje de moverse, el LED rojo y el sonido continúan hasta que se ingrese la clave correcta por el teclado. Una vez ingresada la clave, el sistema vuelve al reposo y se rearma después de un tiempo de seguridad.
+El sistema debe detectar la presencia de una persona mediante el sensor PIR y responder con una alarma visual y sonora. Mientras no haya detección, debe mostrar un estado de reposo con el LED verde encendido. Cuando detecte movimiento, debe encender el LED rojo y hacer sonar el buzzer de forma intermitente. La alarma debe quedar **enclavada**: aunque la persona deje de moverse, el LED rojo y el sonido continúan hasta que se ingrese la clave correcta por el teclado. Una vez ingresada la clave, el sistema vuelve al reposo y se rearma después de 10 segundos y de que el PIR vuelva a LOW.
 
 El comportamiento se resume en cuatro estados: calentamiento (`WARMUP`), armado (`ARMED`), alarma (`TRIGGERED`) y rearme (`REARMING`). La clave de fábrica es `0000` y se define en una constante del código.
 
 ### 2.2. Diagrama en bloques
 
-La Figura 1 muestra la arquitectura física del sistema. El Arduino Uno R3 es el controlador central; el PIR y el teclado son entradas; el LCD, los LEDs y el buzzer son salidas. La llave de dos puntos corta la alimentación general del conjunto.
+La Figura 1 muestra la arquitectura física del sistema. El Arduino Uno R3 es el controlador central; el PIR y el teclado son entradas; el LCD, los LEDs y el buzzer son salidas. La llave de dos puntos corta la alimentación externa del conjunto.
 
 **Figura 1**
 
@@ -264,7 +266,7 @@ flowchart LR
     ARD -->|"D3 + 330 Ω"| LV["LED verde"]
     ARD -->|"D4 + 330 Ω"| LR["LED rojo"]
     ARD -->|"D5<br/>tone()"| BZ["Buzzer pasivo"]
-    FU["Fuente 5 V / 9 V"] -->|"Llave de 2 puntos"| ARD
+    FU["Fuente 7–12 V"] -->|"Llave de 2 puntos"| ARD
     FU --> PIR
     FU --> LCD
     FU --> BZ
@@ -318,7 +320,7 @@ stateDiagram-v2
 
 | Código | Requerimiento | Criterio de aceptación |
 |---|---|---|
-| RF-01 | Detectar movimiento con el PIR | El sistema pasa a `TRIGGERED` cuando la salida del PIR está en HIGH durante al menos 150 ms |
+| RF-01 | Detectar movimiento con el PIR | El sistema pasa a `TRIGGERED` cuando la salida del PIR está en HIGH durante al menos 150 ms (la confirmación efectiva tarda entre 150 y 200 ms por el muestreo cada 50 ms) |
 | RF-02 | Indicar reposo con LED verde | LED verde encendido de forma continua en `ARMED` |
 | RF-03 | Indicar alarma con LED rojo | LED rojo encendido en `TRIGGERED` |
 | RF-04 | Emitir sonido intermitente | Buzzer a 2 kHz con 250 ms encendido y 350 ms apagado |
@@ -385,13 +387,13 @@ El módulo tiene dos potenciómetros y un jumper:
 
 El sensor necesita un calentamiento de 30 a 60 segundos después de energizarse para estabilizar su lectura. Durante ese tiempo puede entregar falsos positivos. Por eso el firmware lo ignora y muestra una cuenta regresiva de 60 segundos.
 
-Limitaciones prácticas: el PIR puede dispararse con fuentes de calor, luz solar directa, corrientes de aire, mascotas, vidrios que reflejan infrarrojo o personas que se mueven detrás de una ventana. Conviene montarlo entre 1,5 y 2 metros de altura, lejos de la salida de aire del LCD o del buzzer, y orientado hacia la zona de paso. La salida de 3,3 V es compatible con el umbral de HIGH del Arduino a 5 V en la mayoría de las unidades, pero si se observan lecturas inestables se puede interponer un adaptador de nivel o un divisor resistivo.
+Limitaciones prácticas: el PIR puede dispararse con fuentes de calor, luz solar directa, corrientes de aire, mascotas, vidrios que reflejan infrarrojo o personas que se mueven detrás de una ventana. Conviene montarlo entre 1,5 y 2 metros de altura, lejos de la salida de aire del LCD o del buzzer, y orientado hacia la zona de paso. La salida de 3,3 V es compatible con el umbral de HIGH del Arduino a 5 V en la mayoría de las unidades, pero si se observan lecturas inestables se puede interponer un buffer o un adaptador de nivel. No usar un divisor resistivo: reduciría la tensión por debajo del umbral de HIGH y empeoraría la lectura.
 
 > **[Fotografía 2 – espacio reservado].** Insertar un primer plano del HC-SR501 de frente, donde se vean la lente de Fresnel, los dos potenciómetros (Sx y Tx) y el jumper H/L. Archivo sugerido: `fotos/02-sensor-pir.jpg`.
 
 ### 3.3. Teclado matricial 4×4
 
-El teclado es una matriz de 16 pulsadores organizada en cuatro filas y cuatro columnas. Para leerlo no se necesitan 16 pines, sino ocho: cuatro filas y cuatro columnas. La librería `Keypad` recorre las columnas, una por vez, y lee las filas para identificar qué tecla está presionada (Stanley & Brevig, n.d.). Las teclas típicas son `1` a `9`, `0`, `*`, `#` y `A` a `D`. En este proyecto solo se usan los dígitos, el asterisco para borrar y la almohadilla para confirmar.
+El teclado es una matriz de 16 pulsadores organizada en cuatro filas y cuatro columnas. Para leerlo no se necesitan 16 pines, sino ocho: cuatro filas y cuatro columnas. La librería `Keypad` recorre las columnas, una por vez, y lee las filas para identificar qué tecla está presionada (Stanley & Brevig, n.d.). Las teclas típicas son `1` a `9`, `0`, `*`, `#` y `A` a `D`. En este proyecto solo se usan los dígitos y el asterisco para borrar; la almohadilla no se usa porque la clave se valida automáticamente al ingresar el cuarto dígito.
 
 El teclado de membrana tiene un conector flexible de ocho contactos. El orden puede variar entre fabricantes, por lo que siempre se debe verificar con un multímetro en modo continuidad: se identifican las cuatro filas y las cuatro columnas midiendo qué contactos se cierran al presionar cada tecla. En la sección 4.4 se propone un orden típico y un procedimiento de verificación.
 
@@ -439,9 +441,9 @@ Para leerlo se conecta un lado de cada llave a un pin del Arduino y el otro lado
 
 ### 3.8. Llave interruptor de 2 puntos
 
-La llave de dos puntos es un interruptor de dos posiciones (encendido/apagado). En este proyecto se usa como **corte de alimentación general**: se coloca en serie con la fuente externa que alimenta el Arduino y el protoboard. De esta manera, al apagarla se deja de energizar todo el conjunto.
+La llave de dos puntos es un interruptor de dos posiciones (encendido/apagado). En este proyecto se usa como **corte de la alimentación externa**: se coloca en serie con la fuente que alimenta el Arduino y el protoboard. De esta manera, al apagarla se deja de energizar el conjunto alimentado por esa fuente. Importante: la llave **no corta la alimentación que llega por USB**; si el Arduino está conectado a la PC, hay que desconectar el USB o usar un cable con interruptor para apagarlo por completo.
 
-No se recomienda cortar el cable USB de la PC, porque el USB también transporta datos y porque algunos cables no toleran interrupciones. La forma correcta es usar una fuente de 5 V o una batería de 9 V con conector de barril, y poner la llave entre el positivo de la fuente y el conector del Arduino. Si se alimenta por USB, se puede usar un cable USB con interruptor o una regleta con llave, sin cortar el cable original.
+No se recomienda cortar el cable USB de la PC, porque el USB también transporta datos y porque algunos cables no toleran interrupciones. La forma correcta es usar una fuente de **7 a 12 V** (o una batería de 9 V) con conector de barril, y poner la llave entre el positivo de la fuente y el conector del Arduino. No conviene alimentar el conector de barril con 5 V, porque queda por debajo del rango recomendado de la placa y el regulador puede no entregar una salida estable. Si se alimenta por USB, se puede usar un cable USB con interruptor o una regleta con llave, sin cortar el cable original.
 
 > **[Fotografía 8 – espacio reservado].** Insertar una foto de la llave de dos puntos de frente y de perfil, mostrando los terminales de conexión. Archivo sugerido: `fotos/08-llave-2-puntos.jpg`.
 
@@ -512,7 +514,7 @@ Plantilla de inserción:
 
 ### 4.1. Lista de materiales
 
-La Tabla 5 contiene la lista completa. Los componentes marcados como “kit” son los que figuraban en `Componentes.txt`; los marcados como “agregar” son necesarios para cumplir la consigna y se incorporaron a esa lista.
+La Tabla 5 contiene la lista completa. Los componentes marcados como “kit” ya figuraban en `Componentes.txt`; el único marcado como “agregar” es la fuente de alimentación.
 
 **Tabla 5**
 
@@ -523,22 +525,22 @@ La Tabla 5 contiene la lista completa. Los componentes marcados como “kit” s
 | 1 | Arduino Uno R3 | 1 | ATmega328P, 16 MHz, 5 V | Controlador | Kit |
 | 2 | Sensor PIR HC-SR501 | 1 | 4,5–20 V, salida 3,3 V | Detección de movimiento | Kit |
 | 3 | Teclado matricial 4×4 | 1 | Membrana, 8 contactos | Ingreso de clave | Kit |
-| 4 | LCD 16×2 con I2C | 1 | HD44780 + PCF8574 | Interfaz de usuario | Agregar |
-| 5 | LED verde | 1 | 5 mm, 2 V, 20 mA | Indicador de reposo | Agregar |
-| 6 | LED rojo | 1 | 5 mm, 2 V, 20 mA | Indicador de alarma | Agregar |
-| 7 | Buzzer pasivo | 1 | Piezoeléctrico, 5 V | Alarma sonora | Agregar |
+| 4 | LCD 16×2 con I2C | 1 | HD44780 + PCF8574 | Interfaz de usuario | Kit |
+| 5 | LED verde | 1 | 5 mm, 2 V, 20 mA | Indicador de reposo | Kit |
+| 6 | LED rojo | 1 | 5 mm, 2 V, 20 mA | Indicador de alarma | Kit |
+| 7 | Buzzer pasivo | 1 | Piezoeléctrico, 5 V | Alarma sonora | Kit |
 | 8 | Resistencia 330 Ω | 2 | 1/4 W, ±5 % | Limitación de LEDs | Kit |
 | 9 | Resistencia 1 kΩ | 1 | 1/4 W, ±5 % | Protección del DIP / base | Kit |
 | 10 | DIP switch de 4 llaves | 1 | Azul, 4 SPST | Problema 4 | Kit |
 | 11 | Llave interruptor de 2 puntos | 1 | SPDT | Encendido general | Kit |
-| 12 | Pulsadores momentáneos | 2 | Normalmente abiertos | Problemas 1 y 2 | Agregar |
+| 12 | Pulsadores momentáneos | 2 | Normalmente abiertos | Problemas 1 y 2 | Kit |
 | 13 | Protoboard | 1 | 830 puntos | Montaje | Kit |
 | 14 | Cables | 1 set | M/M, F/F, M/F | Conexiones | Kit |
-| 15 | Potenciómetro 10 kΩ | 1 | Lineal | Contraste (solo LCD paralelo) | Agregar |
-| 16 | Resistencia 220 Ω | 1 | 1/4 W | Luz de fondo (solo LCD paralelo) | Agregar |
-| 17 | Fuente 5 V / 1 A o batería 9 V | 1 | Con conector de barril | Alimentación | Agregar |
+| 15 | Potenciómetro 10 kΩ | 1 | Lineal | Contraste (solo LCD paralelo) | Kit |
+| 16 | Resistencia 220 Ω | 1 | 1/4 W | Luz de fondo (solo LCD paralelo) | Kit |
+| 17 | Fuente 7–12 V / 1 A o batería 9 V | 1 | Con conector de barril | Alimentación | Agregar |
 
-*Nota.* Si se usa el LCD con módulo I2C, no hacen falta el potenciómetro de 10 kΩ ni la resistencia de 220 Ω, porque el módulo ya incluye el contraste y la luz de fondo. La resistencia de 1 kΩ no es obligatoria para la alarma; se usa en el problema 4 y puede servir como resistencia de base si se agrega un transistor para el buzzer.
+*Nota.* Si se usa el LCD con módulo I2C, no hacen falta el potenciómetro de 10 kΩ ni la resistencia de 220 Ω, porque el módulo ya incluye el contraste y la luz de fondo. La resistencia de 1 kΩ no es obligatoria para la alarma; se usa en el problema 4 y puede servir como resistencia de base si se agrega un transistor para el buzzer. Las dos resistencias de 330 Ω se reutilizan en los problemas 1 a 4; no hace falta una por sketch.
 
 ### 4.2. Asignación de pines
 
@@ -589,7 +591,7 @@ La Tabla 6 es la referencia oficial del firmware de la alarma. Cualquier cambio 
 5. **Conectar el buzzer**: positivo a D5 y negativo a GND. Si el buzzer tiene marcas de polaridad, respetarlas.
 6. **Conectar el teclado**: identificar las filas y columnas (sección 4.4) y llevar R1–R4 a D6–D9 y C1–C4 a A0–A3.
 7. **Conectar el LCD I2C**: VCC a 5 V, GND a GND, SDA a A4 y SCL a A5. Ajustar el contraste con el potenciómetro del módulo.
-8. **Conectar la llave de dos puntos** en serie con el positivo de la fuente externa, antes del conector de barril del Arduino. No cortar el cable USB.
+8. **Conectar la llave de dos puntos** en serie con el positivo de la fuente externa, antes del conector de barril del Arduino. No cortar el cable USB. Recordar que, si hay USB conectado, la llave no corta esa alimentación.
 9. **Verificar continuidad** entre 5 V y GND con el multímetro; debe haber alta resistencia, no cortocircuito.
 10. **Energizar** y observar el LCD. Si no hay texto, revisar el contraste, la dirección I2C y el cableado antes de cargar el programa.
 
@@ -707,15 +709,15 @@ En `setup()` se reemplaza `lcd.init();` por `lcd.begin(16, 2);` y se elimina `lc
 | LCD 16×2 con I2C | 20 mA | Con luz de fondo |
 | LED verde | 9 mA | Con 330 Ω |
 | LED rojo | 9 mA | Con 330 Ω |
-| Buzzer pasivo | 30 mA | A 5 V, intermitente |
+| Buzzer pasivo | 30 mA | A 5 V, intermitente; conviene un transistor |
 | Teclado | < 1 mA | Escaneo |
 | **Total estimado** | **≈ 183 mA** | Dentro de los 500 mA del USB |
 
-El Arduino Uno puede alimentar los periféricos desde su pin 5 V, pero la corriente total disponible depende de la fuente. Con USB de una PC se dispone de hasta 500 mA; con una fuente de 5 V/1 A hay margen suficiente. Una batería de 9 V tiene poca capacidad (típicamente 500 mAh) y el regulador de la placa disipa energía, por lo que la autonomía puede ser de pocas horas. Para una demostración corta alcanza; para un uso prolongado conviene una fuente de 5 V/1 A o un pack de seis pilas AA.
+El Arduino Uno puede alimentar los periféricos desde su pin 5 V, pero la corriente total disponible depende de la fuente. Con USB de una PC se dispone de hasta 500 mA; con una fuente de 7–12 V/1 A conectada al conector de barril hay margen suficiente. Una batería de 9 V tiene poca capacidad (típicamente 500 mAh) y el regulador de la placa disipa energía, por lo que la autonomía puede ser de pocas horas. Para una demostración corta alcanza; para un uso prolongado conviene una fuente de 7–12 V/1 A o un pack de seis pilas AA.
 
-El PIR entrega 3,3 V en su salida. El Arduino Uno interpreta como HIGH cualquier tensión superior a aproximadamente 3,0 V, por lo que en general funciona directo. Si el sensor está lejos o hay ruido, se puede agregar un divisor resistivo o un adaptador de nivel. No alimentar el PIR con 3,3 V: el módulo necesita al menos 4,5 V.
+El PIR entrega 3,3 V en su salida. El Arduino Uno interpreta como HIGH cualquier tensión superior a aproximadamente 3,0 V, por lo que en general funciona directo. Si el sensor está lejos o hay ruido, se puede agregar un buffer o un adaptador de nivel. No usar un divisor resistivo: bajaría la tensión por debajo del umbral de HIGH (~3,0 V) y la lectura se volvería más inestable. No alimentar el PIR con 3,3 V: el módulo necesita al menos 4,5 V.
 
-Si el buzzer consume más de 40 mA, no conectarlo directo a un pin. Usar un transistor NPN (por ejemplo, 2N2222) con una resistencia de 1 kΩ en la base, el buzzer entre 5 V y el colector, y un diodo de rueda libre si el buzzer es magnético. El código no cambia: sigue usando `tone()` en el pin de control.
+El pin digital entrega 20 mA de forma recomendada y 40 mA como máximo absoluto. El buzzer de este proyecto consume unos 30 mA, por encima del valor recomendado aunque dentro del máximo: para un montaje definitivo conviene manejarlo con un transistor NPN (por ejemplo, 2N2222) con una resistencia de 1 kΩ en la base, el buzzer entre 5 V y el colector, y un diodo de rueda libre si el buzzer es magnético. El código no cambia: sigue usando `tone()` en el pin de control.
 
 ### 4.8. Buenas prácticas de montaje
 
@@ -773,7 +775,7 @@ La lógica principal se implementa con una enumeración `State` y una variable g
 | `WARMUP` | Fin del calentamiento | `millis() - stateSince >= 60000` | `ARMED` | LED verde fijo, LCD “Sistema armado” |
 | `ARMED` | Movimiento | `pirActive == true` | `TRIGGERED` | LED rojo, buzzer intermitente, LCD “Movimiento!” |
 | `TRIGGERED` | Tecla de dígito | `inputLen < 4` | `TRIGGERED` | Agregar dígito, mostrar máscara, silenciar buzzer |
-| `TRIGGERED` | Cuarta tecla o `#` | `inputLen == 4` | `TRIGGERED` o `REARMING` | Comparar con la clave |
+| `TRIGGERED` | Cuarta tecla | `inputLen == 4` | `TRIGGERED` o `REARMING` | Comparar con la clave |
 | `TRIGGERED` | Clave correcta | `strcmp(...) == 0` | `REARMING` | Detener buzzer, LED verde, LCD “Alarma OFF” |
 | `TRIGGERED` | Clave incorrecta | `strcmp(...) != 0` | `TRIGGERED` | Error de 1,5 s, tres beeps, reanudar alarma |
 | `REARMING` | Fin del rearme | `elapsed >= 10000 && !pirActive` | `ARMED` | LED verde fijo, LCD “Sistema armado” |
@@ -903,8 +905,7 @@ La clave se almacena en `const char PASSWORD[] = "0000";`. El buffer `input` tie
 
 - Solo se aceptan los caracteres `0` a `9`.
 - El asterisco `*` borra todo el buffer.
-- La almohadilla `#` confirma si ya hay cuatro dígitos.
-- Al ingresar el cuarto dígito, la comparación es automática; no hace falta presionar `#`.
+- La almohadilla `#` se ignora: al ingresar el cuarto dígito la comparación es automática y no hace falta confirmar.
 - La comparación se hace con `strcmp(input, PASSWORD) == 0`.
 - Si la clave es correcta, se pasa a `REARMING`.
 - Si es incorrecta, se muestra el error, se borra el buffer y se reanuda la alarma.
@@ -1425,8 +1426,9 @@ void updateLCD() {
 
   switch (state) {
     case WARMUP: {
-      int remaining = (int)((WARMUP_MS - (now - stateSince) + 999UL) / 1000UL);
-      if (remaining < 0) remaining = 0;
+      unsigned long elapsed = now - stateSince;
+      int remaining = (elapsed < WARMUP_MS)
+          ? (int)((WARMUP_MS - elapsed + 999UL) / 1000UL) : 0;
       if (!lcdDirty && remaining == lastCountdown) return;
       lastCountdown = remaining;
       strcpy(line1, "Calentando PIR");
@@ -1454,8 +1456,9 @@ void updateLCD() {
       break;
 
     case REARMING: {
-      int remaining = (int)((REARM_MS - (now - stateSince) + 999UL) / 1000UL);
-      if (remaining < 0) remaining = 0;
+      unsigned long elapsed = now - stateSince;
+      int remaining = (elapsed < REARM_MS)
+          ? (int)((REARM_MS - elapsed + 999UL) / 1000UL) : 0;
       if (!lcdDirty && remaining == lastCountdown) return;
       lastCountdown = remaining;
       strcpy(line1, "Alarma OFF");
@@ -1525,7 +1528,6 @@ Una secuencia típica del monitor serie es la siguiente:
 Clave de fabrica: 0000
 Calentando el PIR 60 s...
 Estado: CALENTAMIENTO
-PIR: REPOSO
 PIR estabilizado
 Estado: ARMADO
 PIR: MOVIMIENTO
@@ -1618,7 +1620,7 @@ void stopAlarmSound() {
 }
 ```
 
-En `updateBuzzer()` se cambia `tone(BUZZER_PIN, BUZZER_FREQ)` por `digitalWrite(BUZZER_PIN, HIGH)` y `noTone(BUZZER_PIN)` por `digitalWrite(BUZZER_PIN, LOW)`. Para los beeps de error se hace lo mismo con el pin. El patrón de tiempos no cambia. Si el buzzer activo consume más de 40 mA, usar un transistor y una resistencia de 1 kΩ en la base.
+En `updateBuzzer()` se cambia `tone(BUZZER_PIN, BUZZER_FREQ)` por `digitalWrite(BUZZER_PIN, HIGH)` y `noTone(BUZZER_PIN)` por `digitalWrite(BUZZER_PIN, LOW)`. Para los beeps de error se hace lo mismo con el pin. El patrón de tiempos no cambia. Si el buzzer activo consume más de 20 mA (el valor recomendado por pin), usar un transistor y una resistencia de 1 kΩ en la base.
 
 <div style="page-break-before: always;"></div>
 
@@ -1776,7 +1778,7 @@ void loop() {
 
 **Pruebas.**
 
-- Al energizar, esperar 60 segundos sin mover el LED.
+- Al energizar, esperar 60 segundos sin moverse frente al PIR.
 - Acercar la mano al PIR: el LED se enciende y queda encendido.
 - Dejar de moverse: el LED sigue encendido.
 - Presionar B: el LED se apaga aunque el PIR siga detectando movimiento.
@@ -1995,7 +1997,7 @@ Se usan el monitor serie, el multímetro, un cronómetro y una persona que se mu
 | T-12 | Rearme | Desactivar y esperar 10 s con el PIR en reposo | Estado `ARMED` y LED verde fijo |
 | T-13 | LCD | Recorrer todos los estados | Mensajes de la Tabla 15 sin caracteres extraños |
 | T-14 | Monitor serie | Abrir el monitor a 9600 | Mensajes legibles, sin basura |
-| T-15 | Llave general | Apagar y encender la llave | Todo el conjunto se apaga y vuelve a `WARMUP` |
+| T-15 | Llave general | Apagar y encender la llave | Se apaga el conjunto alimentado por la fuente externa y vuelve a `WARMUP` |
 | T-16 | Problema 1 | Cargar el sketch P1 | A enciende, B apaga, el estado se mantiene |
 | T-17 | Problema 2 | Cargar el sketch P2 | PIR enciende, B apaga y bloquea hasta reposo |
 | T-18 | Problema 3 | Cargar el sketch P3 | Cada tecla muestra su carácter y ASCII |
@@ -2032,7 +2034,7 @@ El proyecto se considera aceptado si:
 - Una clave incorrecta se informa y permite reintentar.
 - El LCD muestra el estado y la máscara de la clave.
 - El sistema se rearma sin disparos falsos inmediatos.
-- La llave de dos puntos apaga y enciende todo el conjunto.
+- La llave de dos puntos apaga y enciende el conjunto cuando se alimenta con la fuente externa; no corta el USB.
 - Los cuatro problemas disparadores funcionan según su consigna.
 
 ### 8.6. Solución de problemas
@@ -2090,7 +2092,7 @@ El proyecto se considera aceptado si:
 6. Ingresar la clave `0000` con el teclado. Al presionar la primera tecla, el buzzer se silencia para facilitar el ingreso. La máscara muestra un asterisco por cada dígito.
 7. Si la clave es correcta, el LED rojo se apaga, el LED verde se enciende y el LCD muestra “Alarma OFF” y “Rearmando”. Después de 10 segundos, si no hay movimiento, vuelve a “Sistema armado”.
 8. Si la clave es incorrecta, el LCD muestra “Clave incorrecta”, suenan tres beeps y la alarma vuelve a sonar. Se puede reintentar.
-9. Para apagar el sistema, colocar la llave de dos puntos en apagado.
+9. Para apagar el sistema, colocar la llave de dos puntos en apagado. Si el Arduino está conectado por USB, desconectar también el cable USB: la llave solo corta la fuente externa.
 
 **Olvido de la clave.** La clave de fábrica es `0000`. Si se cambió y no se recuerda, se debe volver a cargar el sketch con la constante `PASSWORD` original. No hay recuperación por hardware.
 
@@ -2454,7 +2456,7 @@ El archivo Markdown incluye un bloque `<style>` al comienzo con las reglas `@pag
   margin: 2.5cm;
   @top-right { content: counter(page); }
   @bottom-left { content: "EEST N°1 – 5°3"; }
-  @bottom-center { content: "6 de noviembre de 2026"; }
+  @bottom-center { content: "9 de noviembre de 2026"; }
   @bottom-right { content: "Manual del Programador"; }
 }
 body {
@@ -2469,7 +2471,7 @@ La numeración aparece en el margen superior derecho y la fecha en el pie centra
 
 ### F.3. Exportación con WeasyPrint
 
-WeasyPrint es la opción recomendada porque respeta `@page`, los contadores de página y la justificación. Requiere Python.
+WeasyPrint es una alternativa que respeta `@page`, los contadores de página y la justificación. Requiere Python. Para esta entrega se usó Chrome headless con Playwright, porque renderiza Mermaid y MathJax antes de imprimir; el procedimiento con WeasyPrint se mantiene como respaldo.
 
 ```bash
 pip install markdown weasyprint
@@ -2479,11 +2481,13 @@ weasyprint MANUAL_DEL_PROGRAMADOR.html MANUAL_DEL_PROGRAMADOR.pdf
 
 *Nota.* Los bloques Mermaid se exportan como código, no como dibujos, porque Mermaid necesita un navegador o una herramienta específica. Si se necesitan los diagramas como imágenes, se pueden generar con `mmdc` (Mermaid CLI) y reemplazar los bloques por las imágenes antes de exportar.
 
+En la versión entregada, el PDF se generó con Chrome headless controlado por Playwright. Antes de imprimir se cargan Mermaid.js y MathJax para convertir los bloques `mermaid` y las fórmulas en SVG; luego se imprime a A4 con márgenes de 2,5 cm. Así se conservan los diagramas, las fórmulas y las reglas `@page` del bloque `<style>`.
+
 ### F.4. Exportación con Pandoc y LaTeX
 
 ```bash
-pandoc MANUAL_DEL_PROGRAMADOR.md -o MANUAL_DEL_PROGRAMADOR.pdf ^
-  --pdf-engine=xelatex -V geometry:margin=2.5cm ^
+pandoc MANUAL_DEL_PROGRAMADOR.md -o MANUAL_DEL_PROGRAMADOR.pdf \
+  --pdf-engine=xelatex -V geometry:margin=2.5cm \
   -V fontsize=11pt -V lang=es
 ```
 
@@ -2530,7 +2534,7 @@ En la exportación a PDF, verificar que las URLs se vean completas y que las cur
 
 | Versión | Fecha | Autores | Cambios |
 |---|---|---|---|
-| 1.0 | 6 de noviembre de 2026 | Alexis Maier, Aramis Demaria, Santino Laudati e Ian Quiroga | Versión inicial del Manual del Programador |
+| 1.0 | 9 de noviembre de 2026 | Alexis Maier, Aramis Demaria, Santino Laudati e Ian Quiroga | Versión inicial del Manual del Programador |
 
 ---
 
