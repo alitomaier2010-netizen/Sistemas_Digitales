@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 40 340 105" width="340" height="105">
+  <path d="M95 70 C160 70 170 110 245 95" fill="none" stroke="#2b2f33" stroke-width="7" stroke-linecap="round"/>
+  <rect x="20" y="52" width="60" height="36" rx="5" fill="#3a3f45"/>
+  <rect x="78" y="58" width="20" height="24" rx="3" fill="#3a3f45"/>
+  <rect x="2" y="57" width="22" height="26" fill="#c9ced3" stroke="#9aa1a8"/>
+  <rect x="6" y="64" width="14" height="4" fill="#5b6168"/><rect x="6" y="72" width="14" height="4" fill="#5b6168"/>
+  <rect x="242" y="83" width="18" height="24" rx="3" fill="#3a3f45"/>
+  <rect x="258" y="80" width="46" height="30" rx="5" fill="#3a3f45"/>
+  <path d="M302 87 h22 l-3 16 h-16 z" fill="#c9ced3" stroke="#9aa1a8"/>
+  <g font-family="Arial, sans-serif" font-size="13" fill="#444" text-anchor="middle">
+    <text x="50" y="112">a la computadora</text><text x="50" y="128">o al cargador</text>
+    <text x="280" y="135">sale de la caja</text>
+  </g>
+</svg>

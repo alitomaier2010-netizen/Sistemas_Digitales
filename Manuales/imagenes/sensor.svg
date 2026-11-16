@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 35 260 195" width="260" height="195">
+  <defs>
+    <radialGradient id="cup" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9dde1"/>
+    </radialGradient>
+    <pattern id="fresnel" width="14" height="14" patternUnits="userSpaceOnUse">
+      <rect width="14" height="14" fill="none" stroke="#c4c9ce" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect x="30" y="150" width="200" height="34" rx="4" fill="#9aa4ae"/>
+  <rect x="25" y="140" width="210" height="16" rx="3" fill="#2f7d4f"/>
+  <path d="M60 145 A70 105 0 0 1 200 145 Z" fill="url(#cup)" stroke="#b9bfc5" stroke-width="2"/>
+  <path d="M60 145 A70 105 0 0 1 200 145 Z" fill="url(#fresnel)" opacity="0.8"/>
+  <text x="130" y="215" font-family="Arial, sans-serif" font-size="14" fill="#444" text-anchor="middle">Sensor de movimiento (cúpula blanca)</text>
+</svg>

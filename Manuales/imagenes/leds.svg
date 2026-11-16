@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 35 300 175" width="300" height="175">
+  <defs>
+    <radialGradient id="gv" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#b8f5c8"/><stop offset="1" stop-color="#1fa64a"/></radialGradient>
+    <radialGradient id="rj" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#ffc2c2"/><stop offset="1" stop-color="#d42a2a"/></radialGradient>
+    <radialGradient id="glowg"><stop offset="0" stop-color="#3ddc6b" stop-opacity="0.45"/><stop offset="1" stop-color="#3ddc6b" stop-opacity="0"/></radialGradient>
+    <radialGradient id="glowr"><stop offset="0" stop-color="#ff4a4a" stop-opacity="0.45"/><stop offset="1" stop-color="#ff4a4a" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect x="10" y="110" width="280" height="60" rx="6" fill="#e8ebee"/>
+  <circle cx="90" cy="100" r="60" fill="url(#glowg)"/>
+  <circle cx="210" cy="100" r="60" fill="url(#glowr)"/>
+  <path d="M70 140 V85 A20 20 0 0 1 110 85 V140 Z" fill="url(#gv)"/>
+  <rect x="64" y="134" width="52" height="8" rx="2" fill="#1a8c3d"/>
+  <path d="M190 140 V85 A20 20 0 0 1 230 85 V140 Z" fill="url(#rj)"/>
+  <rect x="184" y="134" width="52" height="8" rx="2" fill="#b31f1f"/>
+  <g font-family="Arial, sans-serif" font-size="15" text-anchor="middle" fill="#333">
+    <text x="90" y="195" font-weight="bold">LED verde</text>
+    <text x="210" y="195" font-weight="bold">LED rojo</text>
+  </g>
+</svg>
