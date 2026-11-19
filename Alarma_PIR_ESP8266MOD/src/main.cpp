@@ -95,8 +95,36 @@ bool editarClave(char t) {
   return true;
 }
 
+// ---------------- Sonido ----------------
+// El LED rojo y el zumbador (pasivo) comparten D8:
+//  - fase de pitido: tone() -> el zumbador suena y el LED se ve encendido
+//  - fase de silencio: D8 en HIGH fijo -> el zumbador pasivo calla
+//    pero el LED rojo sigue encendido
+// Resultado: LED rojo encendido fijo + sonido intermitente.
+const unsigned int FRECUENCIA = 2000;  // Hz
+const unsigned long T_PITIDO   = 300;  // ms sonando
+const unsigned long T_SILENCIO = 200;  // ms en silencio
+unsigned long tSonido = 0;
+bool fasePitido = false;
+
+void actualizarSonido() {
+  if (!sonando) return;
+  unsigned long fase = (millis() - tSonido) % (T_PITIDO + T_SILENCIO);
+  bool pitar = fase < T_PITIDO;
+  if (pitar == fasePitido) return;   // sin cambio de fase
+  fasePitido = pitar;
+  if (pitar) {
+    tone(pinALARMA, FRECUENCIA);
+  } else {
+    noTone(pinALARMA);
+    digitalWrite(pinALARMA, HIGH);
+  }
+}
+
 void apagarSonido() {
   sonando = false;
+  fasePitido = false;
+  noTone(pinALARMA);
   digitalWrite(pinALARMA, LOW);
   pirBloqueado = true;   // ignorar el movimiento actual hasta que el PIR baje
 }
@@ -104,9 +132,14 @@ void apagarSonido() {
 void dispararAlarma() {
   sonando = true;
   estado = SONANDO;
+  tSonido = millis();
+  fasePitido = false;
+  digitalWrite(pinVERDE, LOW);
   digitalWrite(pinALARMA, HIGH);
+  actualizarSonido();
   Serial.println("\n!!! MOVIMIENTO DETECTADO !!!");
-  Serial.println("Presione A (seguir armada) o B (desarmar) y luego la clave.");
+  Serial.println("Escriba la clave y # para apagar la alarma.");
+  Serial.println("(A + clave + # = callar y seguir armada)");
 }
 
 void iniciarCalentamiento() {
@@ -250,8 +283,13 @@ void procesarTecla(char t) {
         limpiar();
         estado = CLAVE_DESARMAR;
         Serial.println("\nIngrese la clave y # para desactivar.");
+      } else if (t >= '0' && t <= '9') {
+        // escribir la clave directamente: al confirmar con # se desactiva
+        limpiar();
+        estado = CLAVE_DESARMAR;
+        editarClave(t);
       } else {
-        Serial.println("\nLa alarma esta sonando. Presione A o B.");
+        Serial.println("\nLa alarma esta sonando. Escriba la clave y #.");
       }
       break;
 
@@ -299,9 +337,13 @@ void loop() {
 
   // Lectura del PIR por A0 (mayor a 512 equivale a HIGH de 3.3V)
   bool pirActivo = analogRead(pinPIR) > 512;
-  digitalWrite(pinVERDE, pirActivo ? LOW : HIGH);  // verde: sin movimiento
   if (!pirActivo) pirBloqueado = false;
   if (estado == ARMADA && !pirBloqueado && pirActivo) dispararAlarma();
+
+  // Verde = reposo: apagado mientras haya movimiento o la alarma este sonando
+  // (aunque el PIR deje de detectar, el verde no vuelve hasta poner la clave)
+  digitalWrite(pinVERDE, (pirActivo || sonando) ? LOW : HIGH);
+  actualizarSonido();
 
   char t = teclado.getKey();
   if (t) procesarTecla(t);
