@@ -336,7 +336,17 @@ void loop() {
   }
 
   // Lectura del PIR por A0 (mayor a 512 equivale a HIGH de 3.3V)
-  bool pirActivo = analogRead(pinPIR) > 512;
+  int lecturaPIR = analogRead(pinPIR);
+  bool pirActivo = lecturaPIR > 512;
+
+  // DEBUG TEMPORAL: valor de A0 cada 500 ms (borrar cuando funcione)
+  static unsigned long tDebug = 0;
+  if (millis() - tDebug >= 500) {
+    tDebug = millis();
+    Serial.print("[A0=");
+    Serial.print(lecturaPIR);
+    Serial.println("]");
+  }
   if (!pirActivo) pirBloqueado = false;
   if (estado == ARMADA && !pirBloqueado && pirActivo) dispararAlarma();
 
