@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="300" height="200">
+  <rect x="20" y="20" width="260" height="140" rx="10" fill="#00878f"/>
+  <rect x="20" y="52" width="46" height="34" rx="3" fill="#c9ced3" stroke="#9aa1a8"/>
+  <text x="43" y="74" font-family="Arial, sans-serif" font-size="11" fill="#333" text-anchor="middle">USB</text>
+  <rect x="30" y="112" width="34" height="38" rx="3" fill="#2b2f33"/>
+  <rect x="96" y="28" width="150" height="10" fill="#2b2f33"/>
+  <rect x="96" y="142" width="150" height="10" fill="#2b2f33"/>
+  <rect x="150" y="70" width="70" height="40" rx="3" fill="#2b2f33"/>
+  <text x="185" y="95" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle">UNO</text>
+  <text x="150" y="190" font-family="Arial, sans-serif" font-size="14" fill="#444" text-anchor="middle">Placa Arduino Uno</text>
+</svg>

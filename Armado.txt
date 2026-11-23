@@ -1,44 +1,64 @@
-Conexión del hardware, por partes
-1. Alimentación (placa NodeMCU)
+Conexión del hardware, por partes (Arduino Uno)
 
-Se alimenta por el cable micro-USB. Tiene que ser un cable de datos, no uno que solo sirva para cargar.
-Toda la masa va junta: los GND de la placa, del sensor, de los LEDs y del zumbador se unen en la línea negativa (−) del protoboard.
-Llave de encendido: en serie con el cable rojo (+5 V) del USB. Si no querés cortar el cable, la alternativa es poner la llave entre EN y GND: cerrada = apagada.
+1. Alimentación (placa Arduino Uno)
+
+Se alimenta por el cable USB tipo B (el de impresora). Tiene que ser un cable de datos, no uno que solo sirva para cargar.
+Toda la masa va junta: los GND de la placa, del sensor, de los LEDs y del zumbador se unen en la línea negativa (−) del protoboard, conectada a un GND del Arduino.
+Llave de encendido: en serie con el cable rojo (+5 V) del USB, así corta la alimentación de toda la alarma.
+
 2. LED verde (reposo)
 
-D0 → resistencia de 330 Ω → pata larga del LED; pata corta → GND
+D11 → resistencia de 1 kΩ → pata larga del LED; pata corta → GND
+
 3. LED rojo + zumbador (alarma)
 
-D8 → resistencia de 330 Ω → pata larga del LED rojo; pata corta → GND
-D8 → resistencia de 1 kΩ → (+) del zumbador; (−) → GND
+El LED rojo y el zumbador van en serie:
+D12 → resistencia de 330 Ω → pata larga del LED rojo; pata corta del LED → (+) del zumbador; (−) del zumbador → GND
+
 4. Sensor PIR HC-SR501
 
-VCC → VIN (5 V) · OUT → A0 · GND → GND
+VCC → 5V · OUT → D2 · GND → GND
+
 5. Teclado matricial 4×4 (sus 8 cables, de izquierda a derecha mirando el frente)
 
-Filas: D1, D2, D5, D6
-Columnas: D7, D3, D4, RX
+Filas: D3, D4, D5, D6
+Columnas: D7, D8, D9, D10
+
 6. DIP switch: no va en la alarma.
+
+Pines que quedan libres: D0 y D1 no se usan, porque el Arduino los comparte con el USB.
+
+Resumen de pines
+
+D2   Sensor PIR (OUT)
+D3   Teclado, fila 1
+D4   Teclado, fila 2
+D5   Teclado, fila 3
+D6   Teclado, fila 4
+D7   Teclado, columna 1
+D8   Teclado, columna 2
+D9   Teclado, columna 3
+D10  Teclado, columna 4
+D11  LED verde
+D12  LED rojo + zumbador
 
 Para llevarla y conectarla en otra computadora
 Si solo la vas a usar (sin reprogramar):
 
 El programa queda guardado en la placa: no hace falta instalar nada. Conectás el USB a la computadora, a un cargador o a un power bank, y prendés la llave.
-No toques el teclado ni muevas nada delante del sensor al encenderla. Esperá 1 minuto a que el sensor se acomode.
+No muevas nada delante del sensor al encenderla. Esperá 1 minuto a que el sensor se acomode.
 Cada vez que se apaga, la clave vuelve a 1234.
+
 Si la vas a reprogramar o querés ver el monitor serie:
 
-En la otra computadora tienen que estar el driver CH340 (el chip USB de tu placa), VS Code y PlatformIO.
-El puerto COM va a cambiar: en tu PC es COM7. Fijate cuál le toca en el Administrador de dispositivos, en "Puertos (COM y LPT)".
+En la otra computadora tienen que estar VS Code y PlatformIO. El Arduino Uno original no necesita driver; si tu placa es una copia con chip CH340, instalá el driver CH340.
+El puerto COM puede cambiar: fijate cuál le toca en el Administrador de dispositivos, en "Puertos (COM y LPT)".
 El monitor serie se usa a 115200 baudios.
-Para cargar el programa: abrís la carpeta Alarma_PIR_ESP8266MOD y ejecutás Upload.
-Qué desconectar antes de cargar un programa:
+Para cargar el programa: abrís la carpeta Alarma_PIR_Arduino_Uno y ejecutás Upload.
+Antes de cargar, cerrá el monitor serie: si está abierto ocupa el puerto y la carga falla con "Acceso denegado".
+No hace falta desconectar nada del Arduino para cargar el programa.
 
-El cable del teclado que va a RX (columna 4). RX lo comparte el USB, y si queda conectado la carga puede fallar. Lo volvés a conectar cuando termina la carga.
-No hace falta sacar nada más, pero:
-no aprietes teclas durante la carga ni al encender. D3 y D4 son pines de arranque y una tecla apretada puede hacer que la placa no arranque;
-nunca conectes D8 a 3,3 V. Si al encender D8 está en alto, la placa no arranca.
 Para el traslado:
 
-Revisá que ningún cable se haya salido del protoboard, sobre todo los 8 del teclado y el de A0.
-Si la placa no arranca o hace cosas raras, desconectá el USB, revisá que D8 y RX estén bien puestos y volvé a conectar.
+Revisá que ningún cable se haya salido del protoboard, sobre todo los 8 del teclado y el OUT del sensor (D2).
+Si la placa hace cosas raras, desconectá el USB, revisá las conexiones y volvé a conectar.
